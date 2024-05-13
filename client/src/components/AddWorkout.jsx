@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import styled from "styled-components";
-import { PieChart } from "@mui/x-charts/PieChart";
+import TextInput from "./TextInput";
+import Button from "./Button";
 
 const Card = styled.div`
   flex: 1;
@@ -27,26 +28,29 @@ const Title = styled.div`
   }
 `;
 
-const CategoryChart = ({ data }) => {
+
+
+const AddWorkout = ({ workout, setWorkout }) => {
   return (
     <Card>
-      <Title>Weekly Calories Burned</Title>
-      {data?.pieChartData && (
-        <PieChart
-          series={[
-            {
-              data: data?.pieChartData,
-              innerRadius: 30,
-              outerRadius: 120,
-              paddingAngle:5,
-              cornerRadius:5,
-            },
-          ]}
-          height={300}
-        />
-      )}
+      <Title>Add New Workout</Title>
+      <TextInput
+        label="Workout"
+        textArea
+        rows={10}
+        placeholder={`Enter in this Format:
+        #Cateory
+        -Workout Name
+        -Sets
+        -Reps
+        -Weight
+        -Duration`}
+        value={workout}
+        handelChange={(e) => setWorkout(e.target.value)}
+      />
+      <Button text={"Add Workout"} small />
     </Card>
   );
 };
 
-export default CategoryChart;
+export default AddWorkout;
