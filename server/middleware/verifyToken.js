@@ -17,3 +17,4 @@ const verifyToken = async (req, res, next) => {
         console.log(err);
     }
 }
+export default verifyToken
