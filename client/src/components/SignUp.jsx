@@ -31,33 +31,50 @@ const SignUp = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [age, setAge] = useState("");
+  const [profilePicture, setProfilePicture] = useState(null);
 
   const validateInputs = () => {
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !age) {
       alert("Please fill in all fields");
       return false;
     }
     return true;
   };
 
-  const handelSignUp = async () => {
+  const handleFileChange = (e) => {
+    setProfilePicture(e.target.files[0]);
+  };
+
+  const handleSignUp = async () => {
     setLoading(true);
     setButtonDisabled(true);
     if (validateInputs()) {
-      await UserSignUp({ name, email, password })
-        .then((res) => {
-          dispatch(loginSuccess(res.data));
-          alert("Account Created Success");
-          setLoading(false);
-          setButtonDisabled(false);
-        })
-        .catch((err) => {
-          alert(err.response.data.message);
-          setLoading(false);
-          setButtonDisabled(false);
-        });
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("email", email);
+      formData.append("password", password);
+      formData.append("age", age);
+      if (profilePicture) {
+        formData.append("profilePicture", profilePicture);
+      }
+
+      try {
+        const response = await UserSignUp(formData);
+        dispatch(loginSuccess(response.data));
+        alert("Account Created Successfully");
+      } catch (error) {
+        alert(error.response.data.message);
+      } finally {
+        setLoading(false);
+        setButtonDisabled(false);
+      }
+    } else {
+      setLoading(false);
+      setButtonDisabled(false);
     }
   };
+
   return (
     <Container>
       <div>
@@ -90,9 +107,16 @@ const SignUp = () => {
           value={password}
           handelChange={(e) => setPassword(e.target.value)}
         />
+        <TextInput
+          label="Age"
+          placeholder="Enter your age"
+          value={age}
+          handelChange={(e) => setAge(e.target.value)}
+        />
+        <input type="file" onChange={handleFileChange} />
         <Button
           text="SignUp"
-          onClick={handelSignUp}
+          onClick={handleSignUp}
           isLoading={loading}
           isDisabled={buttonDisabled}
         />

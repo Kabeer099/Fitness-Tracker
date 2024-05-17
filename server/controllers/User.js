@@ -4,38 +4,88 @@ import dotenv from "dotenv";
 import { createError } from "../error.js";
 import User from "../models/User.js";
 import Workout from "../models/Workout.js";
-import { response } from "express";
+import multer from "multer";
+import path from "path";
 
 dotenv.config();
+// Multer storage configuration
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, "uploads/"); // Destination folder for uploads
+    },
+    filename: function (req, file, cb) {
+        const ext = path.extname(file.originalname);
+        const uniqueSuffix =
+            Date.now() + "-" + Math.round(Math.random() * 1e9);
+        cb(null, uniqueSuffix + ext); // File name on server
+    },
+});
+
+// File filter for only images
+const fileFilter = (req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) {
+        cb(null, true);
+    } else {
+        cb(new Error("Only images are allowed!"), false);
+    }
+};
+
+// Multer instance with configuration
+const upload = multer({ storage, fileFilter }).single("profilePicture");
 
 export const UserRegister = async (req, res, next) => {
     try {
-        const { email, password, name, img } = req.body;
+        // Handle file upload
+        upload(req, res, async function (err) {
+            if (err instanceof multer.MulterError) {
+                return next(err);
+            } else if (err) {
+                return next(err);
+            }
 
-        // Check if the email is in use
-        const existingUser = await User.findOne({ email }).exec();
-        if (existingUser) {
-            return next(createError(409, "Email is already in use."));
-        }
+            // Access other form data
+            const { name, email, password, age } = req.body;
 
-        const salt = bcrypt.genSaltSync(10);
-        const hashedPassword = bcrypt.hashSync(password, salt);
+            // Check if email already exists
+            const existingUser = await User.findOne({ email }).exec();
+            if (existingUser) {
+                return res.status(409).json({
+                    message: "Email is already in use.",
+                });
+            }
 
-        const user = new User({
-            name,
-            email,
-            password: hashedPassword,
-            img,
+            // Hash password
+            const salt = bcrypt.genSaltSync(10);
+            const hashedPassword = bcrypt.hashSync(password, salt);
+
+            // Save user to database
+            const user = new User({
+                name,
+                email,
+                password: hashedPassword,
+                age,
+                profilePicture: req.file ? req.file.path : null, // Save file path
+            });
+            const createdUser = await user.save();
+
+            // Generate JWT token
+            const token = jwt.sign(
+                { id: createdUser._id },
+                process.env.JWT_SECRET,
+                {
+                    expiresIn: "9999 years",
+                }
+            );
+
+            // Send response
+            res.status(200).json({ token, user: createdUser });
         });
-        const createdUser = await user.save();
-        const token = jwt.sign({ id: createdUser._id }, process.env.JWT, {
-            expiresIn: "9999 years",
-        });
-        return res.status(200).json({ token, user });
     } catch (error) {
-        return next(error);
+        next(error);
     }
 };
+    
+
 
 export const UserLogin = async (req, res, next) => {
     try {
@@ -166,6 +216,7 @@ export const getUserDashboard = async (req, res, next) => {
                 weekData[0]?.totalCaloriesBurnt ? weekData[0]?.totalCaloriesBurnt : 0
             );
         }
+
         return res.status(200).json({
             totalCaloriesBurnt:
                 totalCaloriesBurnt.length > 0
@@ -179,26 +230,19 @@ export const getUserDashboard = async (req, res, next) => {
             },
             pieChartData: pieChartData,
         });
-
     } catch (err) {
-        console.log(err)
+        next(err);
     }
+};
 
-}
-
-
-
-export const getWorkoutsbyData = async (req, res, next) => {
+export const getWorkoutsByDate = async (req, res, next) => {
     try {
         const userId = req.user?.id;
         const user = await User.findById(userId);
-        let date = req.query.date ? new Date(req.query.date) : new Date;
+        let date = req.query.date ? new Date(req.query.date) : new Date();
         if (!user) {
             return next(createError(404, "User not found"));
         }
-
-        const currentDateFormatted = new Date();
-
         const startOfDay = new Date(
             date.getFullYear(),
             date.getMonth(),
@@ -209,98 +253,107 @@ export const getWorkoutsbyData = async (req, res, next) => {
             date.getMonth(),
             date.getDate() + 1
         );
-        const todaysWorkouts = await Workout.countDocuments({
-            user: userId,
+
+        const todaysWorkouts = await Workout.find({
+            userId: userId,
             date: { $gte: startOfDay, $lt: endOfDay },
         });
-
         const totalCaloriesBurnt = todaysWorkouts.reduce(
-            (total, workout) => total + workout.caloriesBurned, 0
+            (total, workout) => total + workout.caloriesBurned,
+            0
         );
+
         return res.status(200).json({ todaysWorkouts, totalCaloriesBurnt });
     } catch (err) {
-        next(err)
+        next(err);
     }
-}
+};
 
 export const addWorkout = async (req, res, next) => {
     try {
         const userId = req.user?.id;
         const { workoutString } = req.body;
         if (!workoutString) {
-            return next(createError(400, "Workout String is Missing"));
+            return next(createError(400, "Workout string is missing"));
         }
-        //split workout into lines
+        // Split workoutString into lines
         const eachworkout = workoutString.split(";").map((line) => line.trim());
-        //check any workout start with # to indicate category
+        // Check if any workouts start with "#" to indicate categories
         const categories = eachworkout.filter((line) => line.startsWith("#"));
-
         if (categories.length === 0) {
-            return next(createError(400, "no categories found in workout"));
+            return next(createError(400, "No categories found in workout string"));
         }
 
         const parsedWorkouts = [];
-        const currentCategory = "";
+        let currentCategory = "";
         let count = 0;
 
         // Loop through each line to parse workout details
-        await eachworkout.foreach((line) => {
+        await eachworkout.forEach((line) => {
             count++;
             if (line.startsWith("#")) {
                 const parts = line?.split("\n").map((part) => part.trim());
                 console.log(parts);
                 if (parts.length < 5) {
-                    return next(createError(400, `Workout string is missing for ${count}th Workout`))
+                    return next(
+                        createError(400, `Workout string is missing for ${count}th workout`)
+                    );
                 }
-                // updtae current category
+
+                // Update current category
                 currentCategory = parts[0].substring(1).trim();
-                // extract workout details
+                // Extract workout details
                 const workoutDetails = parseWorkoutLine(parts);
-                if (workoutDetails === null) {
-                    return next(createError(400, "please Enter in Proper Format"));
+                if (workoutDetails == null) {
+                    return next(createError(400, "Please enter in proper format "));
                 }
+
                 if (workoutDetails) {
-                    // add category to workout details
+                    // Add category to workout details
                     workoutDetails.category = currentCategory;
                     parsedWorkouts.push(workoutDetails);
                 }
-
-            }
-            else {
-                return next(createError(400, `Workout string is missing for ${count}th Workout`))
+            } else {
+                return next(
+                    createError(400, `Workout string is missing for ${count}th workout`)
+                );
             }
         });
+
         // Calculate calories burnt for each workout
         await parsedWorkouts.forEach(async (workout) => {
             workout.caloriesBurned = parseFloat(calculateCaloriesBurnt(workout));
             await Workout.create({ ...workout, user: userId });
-        })
+        });
+
         return res.status(201).json({
             message: "Workouts added successfully",
             workouts: parsedWorkouts,
         });
-
     } catch (err) {
-        next(err)
+        next(err);
     }
-}
+};
 
-
-const parsedWorkoutLine = (parts) => {
+// Function to parse workout details from a line
+const parseWorkoutLine = (parts) => {
     const details = {};
     console.log(parts);
-    if (parts.lenght >= 5) {
+    if (parts.length >= 5) {
         details.workoutName = parts[1].substring(1).trim();
         details.sets = parseInt(parts[2].split("sets")[0].substring(1).trim());
-        details.reps = parseInt(parts[2].split("sets")[1].split("reps")[0].substring(1).trim());
+        details.reps = parseInt(
+            parts[2].split("sets")[1].split("reps")[0].substring(1).trim()
+        );
         details.weight = parseFloat(parts[3].split("kg")[0].substring(1).trim());
         details.duration = parseFloat(parts[4].split("min")[0].substring(1).trim());
         console.log(details);
         return details;
     }
     return null;
+};
 
-}
+// Function to calculate calories burnt for a workout
 const calculateCaloriesBurnt = (workoutDetails) => {
     const durationInMinutes = parseInt(workoutDetails.duration);
     const weightInKg = parseInt(workoutDetails.weight);

@@ -9,16 +9,14 @@ const Card = styled.div`
   padding: 24px;
   border: 1px solid ${({ theme }) => theme.text_primary + 20};
   border-radius: 14px;
-  display: flex;
-  gap: 6px;
   box-shadow: 1px 6px 20px 0px ${({ theme }) => theme.primary + 15};
+  display: flex;
   flex-direction: column;
   gap: 6px;
   @media (max-width: 600px) {
     padding: 16px;
   }
 `;
-
 const Title = styled.div`
   font-weight: 600;
   font-size: 16px;
@@ -28,9 +26,7 @@ const Title = styled.div`
   }
 `;
 
-
-
-const AddWorkout = ({ workout, setWorkout }) => {
+const AddWorkout = ({ workout, setWorkout, addNewWorkout, buttonLoading }) => {
   return (
     <Card>
       <Title>Add New Workout</Title>
@@ -38,17 +34,24 @@ const AddWorkout = ({ workout, setWorkout }) => {
         label="Workout"
         textArea
         rows={10}
-        placeholder={`Enter in this Format:
-        #Cateory
-        -Workout Name
-        -Sets
-        -Reps
-        -Weight
-        -Duration`}
+        placeholder={`Enter in this format:
+
+#Category
+-Workout Name
+-Sets
+-Reps
+-Weight
+-Duration`}
         value={workout}
         handelChange={(e) => setWorkout(e.target.value)}
       />
-      <Button text={"Add Workout"} small />
+      <Button
+        text="Add Workout"
+        small
+        onClick={() => addNewWorkout()}
+        isLoading={buttonLoading}
+        isDisabled={buttonLoading}
+      />
     </Card>
   );
 };
