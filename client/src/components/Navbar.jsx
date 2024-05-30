@@ -147,24 +147,22 @@ const Navbar = ({ currentUser }) => {
         <MobileMenu isOpen={isOpen}>
           <Navlink to={"/"}>Dashboard</Navlink>
           <Navlink to={"/workouts"}>Workouts</Navlink>
-          <Navlink to={"/tutorial"}>Tutorial</Navlink>
-          <Navlink to={"/blogs"}>Blogs</Navlink>
+          <Navlink to={"/nutritions"}>Nutritions</Navlink>
+          <Navlink to={"/progress"}>Blogs</Navlink>
           <Navlink to={"/contact"}>Contact</Navlink>
         </MobileMenu>
 
         <NavItems>
           <Navlink to={"/"}>Dashboard</Navlink>
           <Navlink to={"/workouts"}>Workouts</Navlink>
-          <Navlink to={"/tutorial"}>Tutorial</Navlink>
-          <Navlink to={"/blogs"}>Blogs</Navlink>
+          <Navlink to={"/nutritions"}>Nutritions</Navlink>
+          <Navlink to={"/progress"}>Progress</Navlink>
           <Navlink to={"/contact"}>Contact</Navlink>
         </NavItems>
 
         <UserContainer>
-          <Avatar src={currentUser?.img} > {currentUser?.name[0]}</Avatar>
-          <TextButton onClick={() => dispatch(logout())}>
-            Logout
-          </TextButton>
+          <Avatar src={currentUser?.img}> {currentUser?.name[0]}</Avatar>
+          <TextButton onClick={() => dispatch(logout())}>Logout</TextButton>
         </UserContainer>
       </NavContainer>
     </Nav>

@@ -6,6 +6,8 @@ import Authentication from './pages/Authentication';
 import Navbar from './components/Navbar.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Workouts from './pages/Workouts.jsx';
+import AddNutritionForm from './components/AddNutritionForm.jsx';
+import AddProgress from './components/AddProgress.jsx';
 
 const Container = styled.div`
     width: 100%;
@@ -31,6 +33,8 @@ function App() {
           <Routes>
             <Route path="/" exact element={<Dashboard />} />
             <Route path="/workouts" exact element={<Workouts />} />
+            <Route path="/nutritions" exact element={<AddNutritionForm />} />
+            <Route path="/progress" exact element={<AddProgress />} />
           </Routes>
         </Container>) :
           (<Container>

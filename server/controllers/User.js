@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import { createError } from "../error.js";
 import User from "../models/User.js";
 import Workout from "../models/Workout.js";
+import Nutrition from "../models/Nutrition.js";
+import Progress from "../models/Progress.js";
 import multer from "multer";
 import path from "path";
 
@@ -71,7 +73,7 @@ export const UserRegister = async (req, res, next) => {
             // Generate JWT token
             const token = jwt.sign(
                 { id: createdUser._id },
-                process.env.JWT_SECRET,
+                process.env.JWT,
                 {
                     expiresIn: "9999 years",
                 }
@@ -84,7 +86,7 @@ export const UserRegister = async (req, res, next) => {
         next(error);
     }
 };
-    
+
 
 
 export const UserLogin = async (req, res, next) => {
@@ -359,4 +361,61 @@ const calculateCaloriesBurnt = (workoutDetails) => {
     const weightInKg = parseInt(workoutDetails.weight);
     const caloriesBurntPerMinute = 5; // Sample value, actual calculation may vary
     return durationInMinutes * caloriesBurntPerMinute * weightInKg;
+};
+
+
+export const addNutrition = async (req, res, next) => {
+    try {
+        const userId = req.user.id; // Assuming you have the user ID from the authentication middleware
+        const { mealType, foodItem, quantity, calories, macros } = req.body;
+
+        // Create a new instance of Nutrition
+        const nutrition = new Nutrition({
+            user: userId,
+            mealType,
+            foodItem,
+            quantity,
+            calories,
+            macro: macros, // Ensure it matches the field name in your schema ('macro' not 'macros')
+        });
+
+        // Save the nutrition entry to the database
+        const savedNutrition = await nutrition.save();
+
+        res.status(201).json({
+            success: true,
+            nutrition: savedNutrition,
+        });
+    } catch (error) {
+        console.error('Error adding nutrition:', error);
+        next(error);
+    }
+};
+
+export const recordProgress = async (req, res, next) => {
+    try {
+        const { weight, bodyMeasurements, runTime, liftWeight, recordedAt } = req.body;
+        const userId = req.user?.id; // Assuming you have middleware to verify user authentication
+
+        // Create a new Workout document in MongoDB
+        const progress = new Progress({
+            user: userId,
+            weight,
+            bodyMeasurements,
+            runTime,
+            liftWeight,
+            recordedAt,
+        });
+
+        // Save the workout document to MongoDB
+        const savedProgress = await progress.save();
+
+        res.status(201).json({
+            success: true,
+            progress: savedProgress,
+        });
+    } catch (error) {
+        console.error('Error recording progress:', error);
+        next(createError(500, 'Failed to record progress metrics'));
+    }
 };

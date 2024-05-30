@@ -5,6 +5,8 @@ import {
   addWorkout,
   getUserDashboard,
   getWorkoutsByDate,
+  addNutrition,
+  recordProgress,
 } from "../controllers/User.js";
 import { verifyToken } from "../middleware/verifyToken.js";
 
@@ -16,5 +18,7 @@ router.post("/signin", UserLogin);
 router.get("/dashboard", verifyToken, getUserDashboard);
 router.get("/workout", verifyToken, getWorkoutsByDate);
 router.post("/workout", verifyToken, addWorkout);
+router.post("/nutrition", verifyToken, addNutrition);
+router.post("/progress", verifyToken, recordProgress);
 
 export default router;

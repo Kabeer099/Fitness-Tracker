@@ -7,6 +7,7 @@ import CategoryChart from "../components/cards/CategoryChart";
 import AddWorkout from "../components/AddWorkout";
 import WorkoutCard from "../components/cards/WorkoutCard";
 import { addWorkout, getDashboardDetails, getWorkouts } from "../api";
+import AddNutritionForm from "../components/AddNutritionForm";
 
 const Container = styled.div`
   flex: 1;
@@ -145,6 +146,7 @@ const Dashboard = () => {
             addNewWorkout={addNewWorkout}
             buttonLoading={buttonLoading}
           />
+          {/* <AddNutritionForm /> */}
         </FlexWrap>
 
         <Section>
